@@ -54,6 +54,7 @@ class WorldMap extends React.Component {
     map.Bosses = L.layerGroup(layerOpts);
     map.ControlPoints = L.layerGroup(layerOpts);
     map.Ships = L.layerGroup(layerOpts);
+    map.GhostShips = L.layerGroup(layerOpts);
     map.Stones = L.layerGroup(layerOpts);
     map.Treasure = L.layerGroup(layerOpts);
     var SearchBox = L.Control.extend({
@@ -104,7 +105,8 @@ class WorldMap extends React.Component {
       ControlPoints: map.ControlPoints,
       Resources: map.IslandResources.addTo(map),
       Bosses: map.Bosses,
-      Ships: map.Ships.addTo(map),
+      Ships: map.Ships,
+      GhostShips: map.GhostShips.addTo(map),
       Stones: map.Stones,
     }, {
       position: 'topright'
@@ -295,10 +297,15 @@ class WorldMap extends React.Component {
           }
 
           var p = L.curve(pathing, {
-            color: 'red',
+            color: path.AutoSpawnShipClass.indexOf('GhostShip') !== -1 ? 'red' : 'darkgray',
             dashArray: '10',
-          }).addTo(map);
-          map.Ships.addLayer(p)
+            opacity: 0.8
+          });
+          if (path.AutoSpawnShipClass.indexOf('GhostShip') !== -1) {
+            map.GhostShips.addLayer(p.addTo(map));
+          } else {
+            map.Ships.addLayer(p);
+          }
         })
       })
       .catch(error => {
@@ -383,7 +390,7 @@ class WorldMap extends React.Component {
             for (let disco in islands[k].discoveries) {
               var d = islands[k].discoveries[disco];
               var circle = new IslandCircle(GPStoLeaflet(d.long, d.lat), {
-                radius: .05,
+                radius: config.DiscoveryRadius,
                 color: "#000000",
                 opacity: 0.5,
                 fillOpacity: 0.5,
