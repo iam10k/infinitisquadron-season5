@@ -50,6 +50,7 @@ class WorldMap extends React.Component {
     map.IslandTerritories = L.layerGroup(layerOpts);
     map.IslandResources = L.layerGroup(layerOpts);
     map.Discoveries = L.layerGroup(layerOpts);
+    map.Names = L.layerGroup(layerOpts);
     map.Bosses = L.layerGroup(layerOpts);
     map.ControlPoints = L.layerGroup(layerOpts);
     map.Ships = L.layerGroup(layerOpts);
@@ -97,7 +98,7 @@ class WorldMap extends React.Component {
     L.control.layers({}, {
       Islands: L.tileLayer("islands/{z}/{x}/{y}.png", layerOpts).addTo(map),
       Grid: L.tileLayer("grid/{z}/{x}/{y}.png", layerOpts).addTo(map),
-
+      Names: L.tileLayer("names/{z}/{x}/{y}.png", layerOpts),
       Discoveries: map.Discoveries,
       Treasure: map.Treasure,
       ControlPoints: map.ControlPoints,
@@ -495,9 +496,7 @@ class WorldMap extends React.Component {
   }
 
   render() {
-    return ( <
-      div id = "worldmap" > < /div>
-    )
+    return (<div id = "worldmap"> </div>)
   }
 }
 
@@ -517,24 +516,16 @@ class App extends React.Component {
     const {
       notification
     } = this.state
-    return ( <
-      div className = "App" >
-      <
-      WorldMap / >
-      <
-      div className = {
+    return ( <div className = "App">
+      <WorldMap/>
+      <div className = {
         "notification " + (notification.type || "hidden")
-      } > {
+      }> {
         notification.msg
-      } <
-      button className = "close"
-      onClick = {
+      } <button className = "close" onClick={
         () => this.setState({
           notification: {}
-        })
-      } > Dismiss < /button> < /
-      div > <
-      /div>
+        })}> Dismiss </button> </div> </div>
     )
   }
 }
@@ -556,7 +547,7 @@ function GPStoLeaflet(x, y) {
 
 
 function unrealToLeaflet(x, y) {
-  const unreal = 15400000;
+  const unreal = config.GridSize * Math.max(config.ServersX, config.ServersY);
   var lat = ((x / unreal) * 256),
     long = -((y / unreal) * 256);
   return [long, lat];

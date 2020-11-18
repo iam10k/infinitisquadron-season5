@@ -1,4 +1,5 @@
 const config = {
-    ServersX: 11,
-    ServersY: 11,
+    ServersX: 7,
+    ServersY: 7,
+    GridSize: 1400000,
 }

@@ -2,9 +2,9 @@
 
 const fs = require('fs');
 
-let rawdata = fs.readFileSync('./json/islands.json');
+let rawdata = fs.readFileSync('../json/islands.json');
 let islands = JSON.parse(rawdata);
-rawdata = fs.readFileSync('./json/resourceTypes.json');
+rawdata = fs.readFileSync('../json/resourceTypes.json');
 let resourceTypes = JSON.parse(rawdata);
 let types = {};
 var resources = {};
@@ -40,7 +40,7 @@ for (var type in types) {
     }
 }
 
-fs.writeFileSync('./json/resourceCheck.json', JSON.stringify(types, null, "\t"));
+fs.writeFileSync('../json/resourceCheck.json', JSON.stringify(types, null, "\t"));
 
 console.log("done")
 
