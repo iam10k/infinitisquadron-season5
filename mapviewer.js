@@ -51,6 +51,7 @@ class WorldMap extends React.Component {
     map.IslandResources = L.layerGroup(layerOpts);
     map.Discoveries = L.layerGroup(layerOpts);
     map.Names = L.layerGroup(layerOpts);
+    map.NamesBlobs = L.layerGroup(layerOpts);
     map.Bosses = L.layerGroup(layerOpts);
     map.ControlPoints = L.layerGroup(layerOpts);
     map.Ships = L.layerGroup(layerOpts);
@@ -62,31 +63,40 @@ class WorldMap extends React.Component {
         var element = document.createElement("input");
         element.id = "searchBox";
         element.onchange = function (ev) {
-          var search = document.getElementById("searchBox").value.toLowerCase();
+          const search = document.getElementById("searchBox").value.toLowerCase();
           map.IslandResources.eachLayer(function (layer) {
             if (search !== "" &&
-              (
-                layer.animals.find(function (element) {
-                  return element.toLowerCase().includes(search);
-                }) ||
-                layer.resources.find(function (element) {
-                  return element.toLowerCase().includes(search);
-                }))
-            )
+                (
+                    layer.animals.find(function (element) {
+                      return element.toLowerCase().includes(search);
+                    }) ||
+                    layer.resources.find(function (element) {
+                      return element.toLowerCase().includes(search);
+                    }))
+            ) {
               layer.setStyle({
                 radius: 1.5,
                 color: "#f00",
                 opacity: 1,
                 fillOpacity: 1,
-              })
-            else
+              });
+            } else {
               layer.setStyle({
                 radius: 1.5,
                 color: "#f00",
                 opacity: 0,
                 fillOpacity: 0.1,
-              })
-          })
+              });
+            }
+            if (search !== "" && search.includes('_') && layer.name.toLowerCase().includes(search)) {
+              layer.setStyle({
+                radius: 1.5,
+                color: "#00f",
+                opacity: 1,
+                fillOpacity: 1,
+              });
+            }
+          });
 
         };
         return element;
@@ -344,6 +354,7 @@ class WorldMap extends React.Component {
             circle.animals = [];
             circle.resources = [];
             circle.animals = islands[k].animals.slice();
+            circle.name = islands[k].name;
 
             var html = `<b>${islands[k].name} - ${islands[k].id}</b><ul class='split-ul'>`;
             for (let resource in circle.animals.sort()) {
