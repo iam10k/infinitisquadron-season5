@@ -24,7 +24,8 @@ class WorldMap extends React.Component {
       noWrap: true,
     };
 
-    const baseLayer = L.tileLayer("tiles/{z}/{x}/{y}.png", layerOpts)
+    const baseLayer = L.tileLayer("tiles/{z}/{x}/{y}.png", layerOpts);
+    const cordsRegex = /^(-?\d+(?:\.\d+)?)[ ]*[,:/\\][ ]*(-?\d+(?:\.\d+)?)$/;
 
     const map = this.worldMap = L.map("worldmap", {
       crs: L.CRS.Simple,
@@ -42,11 +43,6 @@ class WorldMap extends React.Component {
       });
     }, 1000);
 
-    // Add zoom control
-    L.control.zoom({
-      position: 'topright'
-    }).addTo(map);
-
     map.IslandTerritories = L.layerGroup(layerOpts);
     map.IslandResources = L.layerGroup(layerOpts);
     map.Discoveries = L.layerGroup(layerOpts);
@@ -58,12 +54,52 @@ class WorldMap extends React.Component {
     map.GhostShips = L.layerGroup(layerOpts);
     map.Stones = L.layerGroup(layerOpts);
     map.Treasure = L.layerGroup(layerOpts);
-    var SearchBox = L.Control.extend({
+    map.Pins = L.layerGroup(layerOpts);
+
+    // Always Layers
+    map.Pins.addTo(map);
+
+    const locationIcon = L.icon({
+      iconUrl: 'icons/location.svg',
+      iconSize: [36, 60],
+      iconAnchor: [18, 30],
+    });
+
+    const SearchBox = L.Control.extend({
       onAdd: function () {
-        var element = document.createElement("input");
+        const element = document.createElement("input");
         element.id = "searchBox";
+        element.placeholder = "search for resources or cords(x,y)";
+        element.style.width = '200px';
+        element.style.height = '30px';
+        element.style.lineHeight = '30px';
+        element.style.font = 'font: bold 18px \'Lucida Console\', Monaco, monospace';
+        element.style.borderRadius = '5px';
+        element.style.border = '1px solid #ccc';
+
         element.onchange = function (ev) {
           const search = document.getElementById("searchBox").value.toLowerCase();
+
+          map.Pins.clearLayers();
+          if (cordsRegex.test(search.trim())) {
+            const matches = search.trim().match(cordsRegex);
+            const long = Number(matches[1]);
+            const lat = Number(matches[2]);
+            console.log(matches);
+            const cordPin = new L.Marker(GPStoLeaflet(long, lat), {
+              icon: locationIcon,
+            });
+
+            cordPin.bindPopup(`Pin: ${long.toFixed(2)} / ${lat.toFixed(2)}`, {
+              showOnMouseOver: true,
+              autoPan: true,
+              keepInView: true,
+            });
+
+            map.Pins.addLayer(cordPin);
+            return;
+          }
+
           map.IslandResources.eachLayer(function (layer) {
             if (search !== "" &&
                 (
@@ -77,8 +113,8 @@ class WorldMap extends React.Component {
               layer.setStyle({
                 radius: 1.5,
                 color: "#f00",
-                opacity: 1,
-                fillOpacity: 1,
+                opacity: .8,
+                fillOpacity: .6,
               });
             } else {
               layer.setStyle({
@@ -103,7 +139,6 @@ class WorldMap extends React.Component {
       }
     });
     (new SearchBox).addTo(map);
-    var input = document.getElementById("searchBox");
 
     // Add Layer Control
     L.control.layers({}, {
@@ -112,13 +147,18 @@ class WorldMap extends React.Component {
       Names: L.tileLayer("names/{z}/{x}/{y}.png", layerOpts),
       Discoveries: map.Discoveries,
       Treasure: map.Treasure,
-      ControlPoints: map.ControlPoints,
+      'Control Points': map.ControlPoints,
       Resources: map.IslandResources.addTo(map),
       Bosses: map.Bosses,
       Ships: map.Ships,
-      GhostShips: map.GhostShips.addTo(map),
+      'Ghost Ships': map.GhostShips.addTo(map),
       Stones: map.Stones,
     }, {
+      position: 'topright'
+    }).addTo(map);
+
+    // Add zoom control
+    L.control.zoom({
       position: 'topright'
     }).addTo(map);
 
@@ -136,12 +176,12 @@ class WorldMap extends React.Component {
         if (!stickyLayers["Bosses"]) map.removeLayer(map.Bosses);
         if (!stickyLayers["Stones"]) map.removeLayer(map.Stones);
       } else {
-        if (!stickyLayers["Bosses"]) { 
+        if (!stickyLayers["Bosses"]) {
           map.addLayer(map.Bosses);
           stickyLayers["Bosses"] = false;
         }
 
-        if (!stickyLayers["Stones"]) { 
+        if (!stickyLayers["Stones"]) {
           map.addLayer(map.Stones);
           stickyLayers["Stones"] = false;
          }
@@ -167,49 +207,49 @@ class WorldMap extends React.Component {
       })
     }
 
-    var CPIcon = L.icon({
+    const CPIcon = L.icon({
       iconUrl: 'icons/lighthouse.svg',
       iconSize: [16, 16],
       iconAnchor: [16, 16],
     });
 
-    var hydraIcon = L.icon({
+    const hydraIcon = L.icon({
       iconUrl: 'icons/Hydra.svg',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
 
-    var yetiIcon = L.icon({
+    const yetiIcon = L.icon({
       iconUrl: 'icons/Yeti.svg',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
 
-    var drakeIcon = L.icon({
+    const drakeIcon = L.icon({
       iconUrl: 'icons/Drake.svg',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
 
-    var meanWhaleIcon = L.icon({
+    const meanWhaleIcon = L.icon({
       iconUrl: 'icons/MeanWhale.svg',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
 
-    var gentleWhaleIcon = L.icon({
+    const gentleWhaleIcon = L.icon({
       iconUrl: 'icons/GentleWhale.svg',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
 
-    var giantSquidIcon = L.icon({
+    const giantSquidIcon = L.icon({
       iconUrl: 'icons/GiantSquid.svg',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
 
-    var stoneIcon = L.icon({
+    const stoneIcon = L.icon({
       iconUrl: 'icons/Stone.svg',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
@@ -221,30 +261,35 @@ class WorldMap extends React.Component {
       .then(res => res.json())
       .then(function (bosses) {
         bosses.forEach(d => {
+          let pin;
           if (d.name === "Drake") {
-            var pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
+            pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
               icon: drakeIcon,
             });
           } else if (d.name === "Hydra") {
-            var pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
+            pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
               icon: hydraIcon,
             });
           } else if (d.name === "Yeti") {
-            var pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
+            pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
               icon: yetiIcon,
             });
-          }else if (d.name === "GiantSquid") {
-            var pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
+          } else if (d.name === "GiantSquid") {
+            pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
               icon: giantSquidIcon,
             });
-          }else if (d.name === "GentleWhale") {
-            var pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
+          } else if (d.name === "GentleWhale") {
+            pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
               icon: gentleWhaleIcon,
             });
-          }else if (d.name === "MeanWhale") {
-            var pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
+          } else if (d.name === "MeanWhale") {
+            pin = new L.Marker(GPStoLeaflet(d.long, d.lat), {
               icon: meanWhaleIcon,
             });
+          }
+
+          if (!pin) {
+            return;
           }
 
           pin.bindPopup(`${d.name}: ${d.long.toFixed(2)} / ${d.lat.toFixed(2)}`, {
@@ -253,7 +298,7 @@ class WorldMap extends React.Component {
             keepInView: true,
           });
 
-          map.Bosses.addLayer(pin)
+          map.Bosses.addLayer(pin);
         })
       })
       .catch(error => {
@@ -338,7 +383,7 @@ class WorldMap extends React.Component {
               autoPan: true,
               keepInView: true,
             });
-  
+
             map.ControlPoints.addLayer(pin)
             continue;
           }
