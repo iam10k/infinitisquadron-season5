@@ -140,6 +140,11 @@ class WorldMap extends React.Component {
     });
     (new SearchBox).addTo(map);
 
+    // Add zoom control
+    L.control.zoom({
+      position: 'topright'
+    }).addTo(map);
+
     // Add Layer Control
     L.control.layers({}, {
       Islands: L.tileLayer("islands/{z}/{x}/{y}.png", layerOpts).addTo(map),
@@ -154,11 +159,6 @@ class WorldMap extends React.Component {
       'Ghost Ships': map.GhostShips.addTo(map),
       Stones: map.Stones,
     }, {
-      position: 'topright'
-    }).addTo(map);
-
-    // Add zoom control
-    L.control.zoom({
       position: 'topright'
     }).addTo(map);
 
