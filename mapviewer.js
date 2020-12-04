@@ -528,7 +528,7 @@ class WorldMap extends React.Component {
         if (!x[0]) {
           this._container.innerHTML = this.options.emptyString;
         } else {
-          this._container.innerHTML = `TP ${x[0]} ${x[1]} ${x[2]}  10000`;
+          this._container.innerHTML = `cheat TP ${x[0]} ${x[1]} ${x[2]} 30000`;
         }
       }
     });
