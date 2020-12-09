@@ -25,7 +25,7 @@ class WorldMap extends React.Component {
     };
 
     const baseLayer = L.tileLayer("tiles/{z}/{x}/{y}.png", layerOpts);
-    const cordsRegex = /^(-?\d+(?:\.\d+)?)[ ]*[,:/\\][ ]*(-?\d+(?:\.\d+)?)$/;
+    const cordsRegex = /(-?\d\d\.\d\d)[^\d-]*(-?\d\d\.\d\d)/;
 
     const map = this.worldMap = L.map("worldmap", {
       crs: L.CRS.Simple,
@@ -91,19 +91,21 @@ class WorldMap extends React.Component {
             const matches = search.trim().match(cordsRegex);
             const long = Number(matches[1]);
             const lat = Number(matches[2]);
-            const cordPin = new L.Marker(GPStoLeaflet(long, lat), {
-              icon: locationIcon,
-            });
+            if (!isNaN(long) && !isNaN(lat)) {
+              const cordPin = new L.Marker(GPStoLeaflet(long, lat), {
+                icon: locationIcon,
+              });
 
-            cordPin.bindPopup(`Pin: ${long.toFixed(2)} / ${lat.toFixed(2)}`, {
-              showOnMouseOver: true,
-              autoPan: true,
-              keepInView: true,
-            });
+              cordPin.bindPopup(`Pin: ${long.toFixed(2)} / ${lat.toFixed(2)}`, {
+                showOnMouseOver: true,
+                autoPan: true,
+                keepInView: true,
+              });
 
-            map.Pins.addLayer(cordPin);
-            map.flyTo(GPStoLeaflet(long, lat), 2.5);
-            return;
+              map.Pins.addLayer(cordPin);
+              map.flyTo(GPStoLeaflet(long, lat), 2.5);
+              return;
+            }
           }
 
           map.IslandResources.eachLayer(function (layer) {
