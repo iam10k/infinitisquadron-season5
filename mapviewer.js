@@ -25,7 +25,7 @@ class WorldMap extends React.Component {
     };
 
     const baseLayer = L.tileLayer("tiles/{z}/{x}/{y}.png", layerOpts);
-    const cordsRegex = /(-?\d\d\.\d\d)[^\d-]*(-?\d\d\.\d\d)/;
+    const cordsRegex = /(-?\d?\d\.\d\d)[^\d-]*(-?\d?\d\.\d\d)/;
 
     const map = this.worldMap = L.map("worldmap", {
       crs: L.CRS.Simple,
