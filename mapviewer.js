@@ -25,7 +25,8 @@ class WorldMap extends React.Component {
     };
 
     const baseLayer = L.tileLayer("tiles/{z}/{x}/{y}.png", layerOpts);
-    const cordsRegex = /(-?\d?\d\.\d\d)[^\d-]*(-?\d?\d\.\d\d)/;
+    const cordsRegex = /(-?\d?\d(?:\.\d\d?)?)[^\d-]*(-?\d?\d(?:\.\d\d?)?)/;
+    const tpRegex = /.*(?:[Tt][Pp] )([A-z]+)(\d+) (-?\d+) (-?\d+).*/;
 
     const map = this.worldMap = L.map("worldmap", {
       crs: L.CRS.Simple,
@@ -74,12 +75,6 @@ class WorldMap extends React.Component {
         const element = document.createElement("input");
         element.id = "searchBox";
         element.placeholder = "search for resources or cords(x,y)";
-        element.style.width = '200px';
-        element.style.height = '30px';
-        element.style.lineHeight = '30px';
-        element.style.font = 'font: bold 18px \'Lucida Console\', Monaco, monospace';
-        element.style.borderRadius = '5px';
-        element.style.border = '1px solid #ccc';
 
         element.onchange = function (ev) {
           const search = document.getElementById("searchBox").value.toLowerCase();
@@ -87,25 +82,32 @@ class WorldMap extends React.Component {
           window.history.replaceState({}, document.title, `${location.pathname}?${urlParams}`);
 
           map.Pins.clearLayers();
-          if (cordsRegex.test(search.trim())) {
+
+          let long = null;
+          let lat = null;
+          if (tpRegex.test(search.trim())) {
+            const matches = search.trim().match(tpRegex);
+            [long, lat] = tpCmdToXY(matches[1], Number(matches[2]), Number(matches[3]), Number(matches[4]));
+          } else if (cordsRegex.test(search.trim())) {
             const matches = search.trim().match(cordsRegex);
-            const long = Number(matches[1]);
-            const lat = Number(matches[2]);
-            if (!isNaN(long) && !isNaN(lat)) {
-              const cordPin = new L.Marker(GPStoLeaflet(long, lat), {
-                icon: locationIcon,
-              });
+            long = Number(matches[1]);
+            lat = Number(matches[2]);
+          }
 
-              cordPin.bindPopup(`Pin: ${long.toFixed(2)} / ${lat.toFixed(2)}`, {
-                showOnMouseOver: true,
-                autoPan: true,
-                keepInView: true,
-              });
+          if (long && lat && !isNaN(long) && !isNaN(lat)) {
+            const cordPin = new L.Marker(GPStoLeaflet(long, lat), {
+              icon: locationIcon,
+            });
 
-              map.Pins.addLayer(cordPin);
-              map.flyTo(GPStoLeaflet(long, lat), 2.5);
-              return;
-            }
+            cordPin.bindPopup(`Pin: ${long.toFixed(2)} / ${lat.toFixed(2)}`, {
+              showOnMouseOver: true,
+              autoPan: true,
+              keepInView: true,
+            });
+
+            map.Pins.addLayer(cordPin);
+            map.flyTo(GPStoLeaflet(long, lat), 2.5);
+            return;
           }
 
           map.IslandResources.eachLayer(function (layer) {
@@ -478,26 +480,48 @@ class WorldMap extends React.Component {
         numDigits: 5,
         lngFormatter: undefined,
         latFormatter: undefined,
-        prefix: ""
+        prefix: "",
+        clickedCords: null
       },
 
       onAdd: function (map) {
         this._container = L.DomUtil.create('div', 'leaflet-control-mouseposition');
         L.DomEvent.disableClickPropagation(this._container);
         map.on('mousemove', this._onMouseMove, this);
+        map.on('click', this._onMouseClick, this);
         this._container.innerHTML = this.options.emptyString;
         return this._container;
       },
 
       onRemove: function (map) {
-        map.off('mousemove', this._onMouseMove)
+        map.off('mousemove', this._onMouseMove);
+        map.off('click', this._onMouseClick);
       },
 
       _onMouseMove: function (e) {
+        if (e.originalEvent.target === this._container) {
+          return;
+        }
         let lng = L.Util.formatNum(scaleLeafletToAtlas(e.latlng.lng) - 100, 2);
         let lat = L.Util.formatNum(100 - scaleLeafletToAtlas(-e.latlng.lat), 2);
+        if (!isOnGrid(e.latlng.lng, -e.latlng.lat)) {
+          return;
+        }
         let value = lng + this.options.separator + lat;
-        this._container.innerHTML = this.options.prefix + ' ' + value;
+        let newHtml = this.options.clickedCords ? `<span class="clicked-cords">${this.options.prefix} ${this.options.clickedCords}</span><br/>` : ''
+        this._container.innerHTML = '' + newHtml + this.options.prefix + ' ' + value + '';
+      },
+
+      _onMouseClick: function (e) {
+        let lng = L.Util.formatNum(scaleLeafletToAtlas(e.latlng.lng) - 100, 2);
+        let lat = L.Util.formatNum(100 - scaleLeafletToAtlas(-e.latlng.lat), 2);
+        if (!isOnGrid(e.latlng.lng, -e.latlng.lat)) {
+          return;
+        }
+        let value = lng + this.options.separator + lat;
+        this.options.clickedCords = value;
+        let newHtml = this.options.clickedCords ? `<span class="clicked-cords">${this.options.prefix} ${value}</span><br/>` : ''
+        this._container.innerHTML = newHtml + this.options.prefix + ' ' + value;
       }
     });
 
@@ -522,7 +546,7 @@ class WorldMap extends React.Component {
       },
 
       onRemove: function (map) {
-        map.off('click', this._onMouseClick)
+        map.off('click', this._onMouseClick);
       },
 
       _onMouseClick: function (e) {
@@ -617,7 +641,21 @@ function unrealToLeafletArray(a) {
 }
 
 function constraint(value, minRange, maxRange, minVal, maxVal) {
-  return (((value - minVal) / (maxVal - minVal)) * (maxRange - minRange) + minRange);
+  return (
+    ((value - minVal) / (maxVal - minVal)) * (maxRange - minRange)
+    + minRange
+  );
+}
+
+function unconstraint(value, minRange, maxRange, minVal, maxVal) {
+  return (minVal * maxRange - minVal * value - maxVal * minRange + maxVal * value) / (maxRange- minRange);
+}
+
+function isOnGrid(x, y) {
+  const precision = (256 / config.ServersX);
+  const gridX = gridXName[Math.floor(x / precision)];
+  const gridY = Math.floor(y / precision) + 1;
+  return gridX && gridY > 0 && gridY <= config.ServersY;
 }
 
 const gridXName = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].splice(0, config.ServersX);
@@ -627,7 +665,17 @@ function ccc(x, y) {
   const gridY = Math.floor(y / precision) + 1;
   const localX = constraint(x % precision, -700000, 700000, 0, precision).toFixed(0);
   const localY = constraint(y % precision, -700000, 700000, 0, precision).toFixed(0);
-  return [gridX ? gridX + gridY : null, localX, localY];
+  return [gridX && gridY > 0 && gridY <= config.ServersY ? gridX + gridY : null, localX, localY];
+}
+
+function tpCmdToXY(xLetter, yGrid, x, y) {
+  const precision = (256 / config.ServersX);
+  const gridX = gridXName.indexOf(xLetter ? xLetter.toUpperCase() : '');
+  const gridY = yGrid - 1;
+  const gpsX = unconstraint(x, -700000, 700000, 0, precision);
+  const gpsY = unconstraint(y, -700000, 700000, 0, precision);
+  return [scaleLeafletToAtlas(precision * gridX + gpsX) - 100,
+    100 - scaleLeafletToAtlas(precision * gridY + gpsY)];
 }
 
 ReactDOM.render( <
