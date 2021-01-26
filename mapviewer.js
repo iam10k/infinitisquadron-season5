@@ -214,7 +214,7 @@ class WorldMap extends React.Component {
     const CPIcon = L.icon({
       iconUrl: 'icons/lighthouse.svg',
       iconSize: [16, 16],
-      iconAnchor: [16, 16],
+      iconAnchor: [8, 8],
     });
 
     const hydraIcon = L.icon({
